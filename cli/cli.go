@@ -31,10 +31,11 @@ func Parse(osArgs []string, version string) (*CLI, error) {
 
 // CLI represents an interface of this command.
 type CLI struct {
-	KubeConfig      string `long:"kubeconfig" default:"~/.kube/config" env:"KUBECONFIG" description:"Path to the kubeconfig file"`
-	ListenPort      int    `long:"listen-port" default:"8000" env:"KUBELOGIN_LISTEN_PORT" description:"Port used by kubelogin to bind its webserver"`
-	SkipTLSVerify   bool   `long:"insecure-skip-tls-verify" env:"KUBELOGIN_INSECURE_SKIP_TLS_VERIFY" description:"If set, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure"`
-	SkipOpenBrowser bool   `long:"skip-open-browser" env:"KUBELOGIN_SKIP_OPEN_BROWSER" description:"If set, it does not open the browser on authentication."`
+	KubeConfig              string `long:"kubeconfig" default:"~/.kube/config" env:"KUBECONFIG" description:"Path to the kubeconfig file"`
+	ListenPort              int    `long:"listen-port" default:"8000" env:"KUBELOGIN_LISTEN_PORT" description:"Port used by kubelogin to bind its webserver"`
+	SkipTLSVerify           bool   `long:"insecure-skip-tls-verify" env:"KUBELOGIN_INSECURE_SKIP_TLS_VERIFY" description:"If set, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure"`
+	SkipOpenBrowser         bool   `long:"skip-open-browser" env:"KUBELOGIN_SKIP_OPEN_BROWSER" description:"If set, it does not open the browser on authentication."`
+	SkipConfigureKubeconfig bool   `long:"skip-configure-kubeconfig" env:"KUBELOGIN_SKIP_CONFIGURE_KUBECONFIG" description:"If set, it does not automatically configure the kubeconfig"`
 }
 
 // ExpandKubeConfig returns an expanded KubeConfig path.
@@ -87,8 +88,12 @@ func (c *CLI) Run(ctx context.Context) error {
 		return fmt.Errorf("Could not get token from OIDC provider: %s", err)
 	}
 
-	authProvider.SetIDToken(token.IDToken)
-	authProvider.SetRefreshToken(token.RefreshToken)
+	if c.SkipConfigureKubeconfig {
+		log.Printf("Execute this command to setup authentication: ")
+	} else {
+		authProvider.SetIDToken(token.IDToken)
+		authProvider.SetRefreshToken(token.RefreshToken)
+	}
 	kubeconfig.Write(cfg, path)
 	log.Printf("Updated %s", c.KubeConfig)
 	return nil
